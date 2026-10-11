@@ -154,7 +154,6 @@ kql-cross-platform-threat-hunting/
 ## Downloadable Artifacts & PDFs
 
 * 📄 **Executive Architecture Blueprint PDF:** [`docs/KQL_ENTERPRISE_THREAT_HUNTING_BLUEPRINT.pdf`](docs/KQL_ENTERPRISE_THREAT_HUNTING_BLUEPRINT.pdf)
-* 📄 **Illustrated LinkedIn Deep-Dive Article PDF:** [`docs/LINKEDIN_ARTICLE_KQL_ENTERPRISE_HUNTING.pdf`](docs/LINKEDIN_ARTICLE_KQL_ENTERPRISE_HUNTING.pdf)
 
 ---
 
