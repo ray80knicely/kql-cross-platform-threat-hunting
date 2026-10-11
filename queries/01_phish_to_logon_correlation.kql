@@ -1,0 +1,34 @@
+// ==============================================================================
+// Step 1: M365 Defender XDR — Correlating Phish Delivery to Immediate Session Sign-In
+// Platform: Microsoft Defender XDR (Advanced Hunting)
+// Tables: EmailEvents, EmailUrlInfo, IdentityLogonEvents
+// Objective: Identify targeted users who received high-confidence phishing/malware
+//            emails and completed an authentication event within a 1-hour critical window.
+// Author: Ray Knicely | Enterprise Cloud Architect
+// ==============================================================================
+
+let TargetUser = "alex.wilson@enterprise.com";
+let Lookback = 7d;
+let BreachWindow = 1h;
+
+let DeliveryWindow = EmailEvents
+| where Timestamp > ago(Lookback)
+| where RecipientEmailAddress =~ TargetUser
+| where ThreatTypes has_any ("Phish", "Malware") or ConfidenceLevel =~ "High"
+| project EmailDeliveryTime = Timestamp, NetworkMessageId, Subject, SenderFromAddress, RecipientEmailAddress;
+
+DeliveryWindow
+| join kind=inner (
+    EmailUrlInfo
+    | where Timestamp > ago(Lookback)
+    | project Timestamp, NetworkMessageId, Url, UrlDomain
+) on NetworkMessageId
+| join kind=inner (
+    IdentityLogonEvents
+    | where Timestamp > ago(Lookback)
+    | where AccountUpn =~ TargetUser
+    | project LogonTime = Timestamp, AccountUpn, IPAddress, Location, Application, ActionType, FailureReason
+) on $left.RecipientEmailAddress == $right.AccountUpn
+| where LogonTime between (EmailDeliveryTime .. (EmailDeliveryTime + BreachWindow))
+| project EmailDeliveryTime, LogonTime, RecipientEmailAddress, SenderFromAddress, Subject, Url, IPAddress, Location, ActionType
+| order by LogonTime asc

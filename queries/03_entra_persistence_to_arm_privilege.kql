@@ -1,0 +1,31 @@
+// ==============================================================================
+// Step 3: Cross-Table Correlation — Entra ID Credential Addition to Azure ARM Privilege Escalation
+// Platform: Microsoft Sentinel / Azure Log Analytics
+// Tables: AuditLogs (Entra ID) joined with AzureActivity (ARM)
+// Objective: Catch lateral movement from identity persistence (app password/secret creation)
+//            directly to Azure Resource Manager control-plane privilege escalation and secret access.
+// Author: Ray Knicely | Enterprise Cloud Architect
+// ==============================================================================
+
+let InvestigationWindow = 48h;
+
+let RogueActions = AuditLogs
+| where TimeGenerated > ago(InvestigationWindow)
+| where OperationName in ("Add service principal credentials", "Add owner to application", "Add member to role")
+| extend Initiator = tostring(InitiatedBy.user.userPrincipalName)
+| extend Target = tostring(TargetResources[0].displayName)
+| project TimeGenerated, Initiator, OperationName, Target, Result;
+
+RogueActions
+| join kind=inner (
+    AzureActivity
+    | where TimeGenerated > ago(InvestigationWindow)
+    | where OperationNameValue has_any (
+        "Microsoft.Authorization/roleAssignments/write", 
+        "Microsoft.KeyVault/vaults/secrets/read"
+    )
+    | project ArmTime = TimeGenerated, Caller, OperationNameValue, ResourceGroup, SubscriptionId, ActivityStatusValue
+) on $left.Initiator == $right.Caller
+| where ArmTime >= TimeGenerated
+| project TimeGenerated, ArmTime, Initiator, EntraAction = OperationName, Target, AzureOperation = OperationNameValue, ResourceGroup, ActivityStatusValue
+| order by ArmTime asc

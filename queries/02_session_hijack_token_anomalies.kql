@@ -1,0 +1,43 @@
+// ==============================================================================
+// Step 2: Microsoft Sentinel — Detecting Session Hijacking & CA Anomalies
+// Platform: Microsoft Sentinel / Azure Log Analytics
+// Table: SigninLogs
+// Objective: Detect adversary-in-the-middle (AiTM) session token replay by unpacking
+//            dynamic JSON to isolate non-compliant devices, anomalous IPs, and CA bypasses.
+// Author: Ray Knicely | Enterprise Cloud Architect
+// ==============================================================================
+
+let Lookback = 3d;
+let SuspectUser = "alex.wilson@enterprise.com";
+
+SigninLogs
+| where TimeGenerated > ago(Lookback)
+| where UserPrincipalName =~ SuspectUser
+| extend CA_Policies = parse_json(ConditionalAccessPolicies)
+| extend DeviceDetail = parse_json(DeviceDetail)
+| extend RiskDetail = parse_json(RiskDetail)
+| extend TrustType = tostring(DeviceDetail.trustType)
+| extend IsCompliant = tostring(DeviceDetail.isCompliant)
+| project 
+    TimeGenerated,
+    UserPrincipalName,
+    IPAddress,
+    Location = LocationDetails.countryOrRegion,
+    City = LocationDetails.city,
+    ClientAppUsed,
+    AppDisplayName,
+    ResultType,
+    ResultDescription,
+    TrustType,
+    IsCompliant,
+    AuthenticationRequirement,
+    RiskLevelDuringSignIn
+| summarize 
+    TotalAttempts = count(),
+    UniqueIPs = dcount(IPAddress),
+    IPList = make_set(IPAddress, 5),
+    Locations = make_set(Location, 5),
+    AppsAccessed = make_set(AppDisplayName, 10)
+    by UserPrincipalName, bin(TimeGenerated, 1h)
+| where UniqueIPs > 1 or TotalAttempts > 15
+| order by TimeGenerated desc

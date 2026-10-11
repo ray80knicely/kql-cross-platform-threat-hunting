@@ -1,0 +1,25 @@
+// ==============================================================================
+// Step 4: Endpoint Hunting (MDE) — Obfuscated Process Lineage & C2 Egress
+// Platform: Microsoft Defender for Endpoint (MDE) / Advanced Hunting
+// Tables: DeviceProcessEvents joined with DeviceNetworkEvents
+// Objective: Track host-level execution of encoded PowerShell payloads and correlate
+//            with outbound network connections to external C2 infrastructure within a 5-minute delta.
+// Author: Ray Knicely | Enterprise Cloud Architect
+// ==============================================================================
+
+let Window = 24h;
+
+DeviceProcessEvents
+| where Timestamp > ago(Window)
+| where FileName in~ ("powershell.exe", "pwsh.exe", "cmd.exe", "mshta.exe")
+| where ProcessCommandLine has_any ("-enc", "-EncodedCommand", "downloadstring", "iex", "Invoke-Expression")
+| project ProcessTime = Timestamp, DeviceName, DeviceId, AccountName, FileName, ProcessCommandLine
+| join kind=inner (
+    DeviceNetworkEvents
+    | where Timestamp > ago(Window)
+    | where RemotePort in (443, 80, 8080, 8443)
+    | project NetworkTime = Timestamp, DeviceId, RemoteIP, RemoteUrl
+) on DeviceId
+| where NetworkTime between (ProcessTime .. (ProcessTime + 5m))
+| project ProcessTime, NetworkTime, DeviceName, AccountName, FileName, ProcessCommandLine, RemoteIP, RemoteUrl
+| order by ProcessTime desc

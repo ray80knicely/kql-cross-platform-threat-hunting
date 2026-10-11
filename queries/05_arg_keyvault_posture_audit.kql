@@ -1,0 +1,24 @@
+// ==============================================================================
+// Step 5: Azure Resource Graph (ARG) — Tenant-Wide Security Posture Audit
+// Platform: Azure Resource Graph (ARG KQL Endpoint)
+// Table: resources (Microsoft.KeyVault/vaults)
+// Objective: Rapidly enumerate Azure Key Vault assets across all enterprise subscriptions
+//            lacking firewall isolation or with soft-delete/purge protection disabled.
+// Author: Ray Knicely | Enterprise Cloud Architect
+// ==============================================================================
+
+resources
+| where type =~ "microsoft.keyvault/vaults"
+| extend networkAcls = properties.networkAcls.defaultAction
+| extend enableSoftDelete = properties.enableSoftDelete
+| extend purgeProtection = properties.enablePurgeProtection
+| project 
+    subscriptionId, 
+    resourceGroup, 
+    name, 
+    location, 
+    NetworkDefaultAction = networkAcls, 
+    SoftDelete = enableSoftDelete, 
+    PurgeProtection = purgeProtection
+| where NetworkDefaultAction =~ "Allow" or SoftDelete == false
+| order by subscriptionId asc

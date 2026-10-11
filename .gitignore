@@ -1,0 +1,14 @@
+# OS & Editor Artifacts
+.DS_Store
+Thumbs.db
+*.tmp
+*.log
+*.swp
+
+# Node & Python caches
+node_modules/
+__pycache__/
+*.pyc
+
+# Local backup files
+*.bak
