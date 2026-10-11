@@ -138,9 +138,7 @@ kql-cross-platform-threat-hunting/
 │   └── kql_investigation_workflow_step1.png   <- Step 1 high-impact code card illustration
 ├── docs/
 │   ├── KQL_ENTERPRISE_INVESTIGATION_BLUEPRINT.md  <- Complete technical blueprint & architecture
-│   ├── KQL_ENTERPRISE_THREAT_HUNTING_BLUEPRINT.pdf <- Downloadable executive blueprint PDF
-│   ├── LINKEDIN_ARTICLE_KQL_ENTERPRISE_HUNTING.md  <- Full deep-dive technical article
-│   └── LINKEDIN_ARTICLE_KQL_ENTERPRISE_HUNTING.pdf <- 6-page illustrated article PDF
+│   └── KQL_ENTERPRISE_THREAT_HUNTING_BLUEPRINT.pdf <- Downloadable executive blueprint PDF
 └── queries/
     ├── 01_phish_to_logon_correlation.kql      <- Step 1 Defender XDR query
     ├── 02_session_hijack_token_anomalies.kql  <- Step 2 Microsoft Sentinel Entra query
